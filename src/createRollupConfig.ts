@@ -158,12 +158,7 @@ export async function createRollupConfig(
         exclude: 'node_modules/**',
         extensions: [...DEFAULT_EXTENSIONS, 'ts', 'tsx'],
         passPerPreset: true,
-        custom: {
-          targets: opts.target === 'node' ? { node: '8' } : undefined,
-          extractErrors: opts.extractErrors,
-          format: opts.format,
-          // defines: opts.defines,
-        },
+        custom: opts,
       }),
       opts.env !== undefined &&
         replace({

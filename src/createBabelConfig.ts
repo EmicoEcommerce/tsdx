@@ -1,6 +1,8 @@
 import { createConfigItem } from '@babel/core';
 import merge from 'lodash.merge';
 
+import { TsdxOptions } from './types';
+
 export const isTruthy = (obj?: any) => {
   if (!obj) {
     return false;
@@ -47,12 +49,16 @@ export const createConfigItems = (type: any, items: any[]) => {
 };
 
 export default function createBabelConfig(
-  customOptions: any,
+  opts: Pick<TsdxOptions, 'target' | 'extractErrors' | 'format'>,
   babelOptions: {
     presets?: any[];
     plugins?: any[];
   } = {}
 ) {
+  const targets = opts.target === 'node' ? { node: '8' } : undefined;
+  const extractErrors = opts.extractErrors;
+  const format = opts.format;
+
   const defaultPlugins = createConfigItems(
     'plugin',
     [
@@ -63,13 +69,9 @@ export default function createBabelConfig(
       // },
       { name: 'babel-plugin-annotate-pure-calls' },
       { name: 'babel-plugin-dev-expression' },
-      customOptions.format !== 'cjs' && {
+      format !== 'cjs' && {
         name: 'babel-plugin-transform-rename-import',
         replacements,
-      },
-      isTruthy(customOptions.defines) && {
-        name: 'babel-plugin-transform-replace-expressions',
-        replace: customOptions.defines,
       },
       {
         name: 'babel-plugin-transform-async-to-promises',
@@ -91,7 +93,7 @@ export default function createBabelConfig(
       {
         name: 'babel-plugin-macros',
       },
-      isTruthy(customOptions.extractErrors) && {
+      isTruthy(extractErrors) && {
         name: './errors/transformErrorMessages',
       },
     ].filter(Boolean)
@@ -110,7 +112,7 @@ export default function createBabelConfig(
         merge(
           {
             loose: true,
-            targets: customOptions.targets,
+            targets,
           },
           preset.options,
           {
@@ -130,7 +132,7 @@ export default function createBabelConfig(
     babelOptions.presets = createConfigItems('preset', [
       {
         name: '@babel/preset-env',
-        targets: customOptions.targets,
+        targets,
         modules: false,
         loose: true,
         exclude: ['transform-async-to-generator', 'transform-regenerator'],
