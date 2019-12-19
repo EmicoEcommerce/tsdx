@@ -48,17 +48,20 @@ export const createConfigItems = (type: any, items: any[]) => {
   });
 };
 
+export interface CreateBabelConfigConfig {
+  targets: string | string[] | { [platform: string]: string };
+  extractErrors: TsdxOptions['extractErrors'];
+  format: TsdxOptions['format'];
+  defines?: any;
+}
+
 export default function createBabelConfig(
-  opts: Pick<TsdxOptions, 'target' | 'extractErrors' | 'format'>,
+  { targets, extractErrors, format, defines }: CreateBabelConfigConfig,
   babelOptions: {
     presets?: any[];
     plugins?: any[];
   } = {}
 ) {
-  const targets = opts.target === 'node' ? { node: '8' } : undefined;
-  const extractErrors = opts.extractErrors;
-  const format = opts.format;
-
   const defaultPlugins = createConfigItems(
     'plugin',
     [
@@ -72,6 +75,10 @@ export default function createBabelConfig(
       format !== 'cjs' && {
         name: 'babel-plugin-transform-rename-import',
         replacements,
+      },
+      isTruthy(defines) && {
+        name: 'babel-plugin-transform-replace-expressions',
+        replace: defines,
       },
       {
         name: 'babel-plugin-transform-async-to-promises',
@@ -100,6 +107,7 @@ export default function createBabelConfig(
   );
 
   babelOptions.presets = babelOptions.presets || [];
+
   const envIdx = babelOptions.presets.findIndex((preset: any) =>
     preset.file.request.includes('@babel/preset-env')
   );

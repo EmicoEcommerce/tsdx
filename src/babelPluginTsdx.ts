@@ -1,6 +1,7 @@
 import babelPlugin from 'rollup-plugin-babel';
-import createBabelConfig from './createBabelConfig';
-import { TsdxOptions } from './types';
+import createBabelConfig, {
+  CreateBabelConfigConfig,
+} from './createBabelConfig';
 
 export const babelPluginTsdx = babelPlugin.custom((babelCore: any) => ({
   // Passed the plugin options.
@@ -13,7 +14,10 @@ export const babelPluginTsdx = babelPlugin.custom((babelCore: any) => ({
       pluginOptions,
     };
   },
-  config(config: any, { customOptions }: { customOptions: TsdxOptions }) {
+  config(
+    config: any,
+    { customOptions }: { customOptions: CreateBabelConfigConfig }
+  ) {
     return createBabelConfig(customOptions, config.options);
   },
 }));
