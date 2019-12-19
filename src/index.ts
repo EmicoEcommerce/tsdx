@@ -49,7 +49,7 @@ try {
 
 // check for custom tsdx.config.js
 let tsdxConfig = {
-  rollup(config: any, _options: any) {
+  rollup(config: RollupOptions, _options: TsdxOptions): RollupOptions {
     return config;
   },
 };
@@ -335,6 +335,15 @@ prog
   .example('watch --noClean')
   .option('--tsconfig', 'Specify custom tsconfig path')
   .example('watch --tsconfig ./tsconfig.foo.json')
+  .example('build --tsconfig ./tsconfig.foo.json')
+  .option('--onFirstSuccess', 'Run a command on the first successful build')
+  .example('watch --onFirstSuccess "echo The first successful build!"')
+  .option('--onSuccess', 'Run a command on a successful build')
+  .example('watch --onSuccess "echo Successful build!"')
+  .option('--onFailure', 'Run a command on a failed build')
+  .example('watch --onFailure "The build failed!"')
+  .option('--transpileOnly', 'Skip type checking', false)
+  .example('build --transpileOnly')
   .option('--extractErrors', 'Extract invariant errors to ./errors/codes.json.')
   .example('build --extractErrors')
   .action(async (dirtyOpts: any) => {
@@ -344,9 +353,37 @@ prog
       await cleanDistFolder();
     }
     await ensureDistFolder();
+    opts.name = opts.name || appPackageJson.name;
+    opts.input = await getInputs(opts.entry, appPackageJson.source);
     if (opts.format.includes('cjs')) {
       await writeCjsEntryFile(opts.name);
     }
+
+    type Killer = execa.ExecaChildProcess | null;
+
+    let firstTime = true;
+    let successKiller: Killer = null;
+    let failureKiller: Killer = null;
+
+    function run(command: string) {
+      if (command) {
+        const [exec, ...args] = command.split(' ');
+
+        return execa(exec, args, {
+          stdio: 'inherit',
+        });
+      }
+
+      return null;
+    }
+
+    function killHooks() {
+      return Promise.all([
+        successKiller ? successKiller.kill('SIGTERM') : null,
+        failureKiller ? failureKiller.kill('SIGTERM') : null,
+      ]);
+    }
+
     const spinner = ora().start();
     await watch(
       (buildConfigs as RollupWatchOptions[]).map(inputOptions => ({
@@ -358,6 +395,9 @@ prog
         ...inputOptions,
       }))
     ).on('event', async event => {
+      // clear previous onSuccess/onFailure hook processes so they don't pile up
+      await killHooks();
+
       if (event.code === 'START') {
         if (!opts.verbose) {
           clearConsole();
@@ -367,18 +407,28 @@ prog
       if (event.code === 'ERROR') {
         spinner.fail(chalk.bold.red('Failed to compile'));
         logError(event.error);
+        failureKiller = run(opts.onFailure);
       }
       if (event.code === 'FATAL') {
         spinner.fail(chalk.bold.red('Failed to compile'));
         logError(event.error);
+        failureKiller = run(opts.onFailure);
       }
       if (event.code === 'END') {
         spinner.succeed(chalk.bold.green('Compiled successfully'));
         console.log(`
   ${chalk.dim('Watching for changes')}
 `);
+
         try {
           await moveTypes();
+
+          if (firstTime && opts.onFirstSuccess) {
+            firstTime = false;
+            run(opts.onFirstSuccess);
+          } else {
+            successKiller = run(opts.onSuccess);
+          }
         } catch (_error) {}
       }
     });
@@ -397,6 +447,8 @@ prog
   .example('build --format cjs,esm')
   .option('--tsconfig', 'Specify custom tsconfig path')
   .example('build --tsconfig ./tsconfig.foo.json')
+  .option('--transpileOnly', 'Skip type checking', false)
+  .example('build --transpileOnly')
   .option(
     '--extractErrors',
     'Extract errors to ./errors/codes.json and provide a url for decoding.'
@@ -411,8 +463,13 @@ prog
     await ensureDistFolder();
     const logger = await createProgressEstimator();
     if (opts.format.includes('cjs')) {
-      const promise = writeCjsEntryFile(opts.name).catch(logError);
-      logger(promise, 'Creating entry file');
+      try {
+        await util.promisify(mkdirp)(resolveApp('./dist'));
+        const promise = writeCjsEntryFile(opts.name).catch(logError);
+        logger(promise, 'Creating entry file');
+      } catch (e) {
+        logError(e);
+      }
     }
     try {
       const promise = asyncro
