@@ -1,4 +1,4 @@
-import createBabelConfig from './createBabelConfig';
+// import createBabelConfig from './createBabelConfig';
 
 export function createJestConfig(
   _: (relativePath: string) => void,
@@ -20,10 +20,13 @@ export function createJestConfig(
     ],
     globals: {
       'ts-jest': {
-        babelConfig: createBabelConfig({
-          target: 'node',
-          format: 'cjs',
-        }),
+        // TODO: babelConfig: createBabelConfig({
+        //   target: 'node',
+        //   format: 'cjs',
+        // }),
+        babelConfig: {
+          presets: ['@babel/preset-env', '@babel/preset-react'],
+        },
       },
     },
   };
