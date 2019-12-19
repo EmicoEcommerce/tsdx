@@ -13,7 +13,6 @@ import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import resolve from 'rollup-plugin-node-resolve';
 import sourceMaps from 'rollup-plugin-sourcemaps';
-import typescript from 'rollup-plugin-typescript2';
 import { extractErrors } from './errors/extractErrors';
 import { babelPluginTsdx } from './babelPluginTsdx';
 import { TsdxOptions } from './types';
@@ -110,6 +109,7 @@ export async function createRollupConfig(opts: TsdxOptions) {
           'main',
           opts.target !== 'node' ? 'browser' : undefined,
         ].filter(Boolean) as string[],
+        extensions: ['.mjs', '.js', '.json', '.node', '.ts', '.tsx'],
       }),
       opts.format === 'umd' &&
         commonjs({
@@ -137,23 +137,6 @@ export async function createRollupConfig(opts: TsdxOptions) {
           };
         },
       },
-      typescript({
-        typescript: require('typescript'),
-        cacheRoot: `./node_modules/.cache/tsdx/${opts.format}/`,
-        tsconfig: opts.tsconfig,
-        tsconfigDefaults: {
-          compilerOptions: {
-            sourceMap: true,
-            declaration: true,
-            jsx: 'react',
-          },
-        },
-        tsconfigOverride: {
-          compilerOptions: {
-            target: 'esnext',
-          },
-        },
-      }),
       babelPluginTsdx({
         exclude: 'node_modules/**',
         extensions: [...DEFAULT_EXTENSIONS, 'ts', 'tsx'],

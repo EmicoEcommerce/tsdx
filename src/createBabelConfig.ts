@@ -55,7 +55,9 @@ export default function createBabelConfig(
     plugins?: any[];
   } = {}
 ) {
-  const targets = opts.target === 'node' ? { node: '8' } : undefined;
+  const isTest = process.env.NODE_ENV === 'test';
+
+  const targets = isTest || opts.target === 'node' ? { node: '8' } : undefined;
   const extractErrors = opts.extractErrors;
   const format = opts.format;
 
@@ -96,6 +98,9 @@ export default function createBabelConfig(
       isTruthy(extractErrors) && {
         name: './errors/transformErrorMessages',
       },
+      isTest && {
+        name: 'babel-plugin-dynamic-import-node',
+      },
     ].filter(Boolean)
   );
 
@@ -116,7 +121,7 @@ export default function createBabelConfig(
           },
           preset.options,
           {
-            modules: false,
+            modules: isTest ? 'commonjs' : false,
             exclude: merge(
               ['transform-async-to-generator', 'transform-regenerator'],
               (preset.options && preset.options.exclude) || []
@@ -133,12 +138,15 @@ export default function createBabelConfig(
       {
         name: '@babel/preset-env',
         targets,
-        modules: false,
+        modules: isTest ? 'commonjs' : false,
         loose: true,
         exclude: ['transform-async-to-generator', 'transform-regenerator'],
       },
     ]);
   }
+
+  babelOptions.presets.push(require.resolve('@babel/preset-typescript'));
+  babelOptions.presets.push(require.resolve('@babel/preset-react'));
 
   // Merge babelrc & our plugins together
   babelOptions.plugins = mergeConfigItems(

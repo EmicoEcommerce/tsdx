@@ -1,4 +1,4 @@
-import createBabelConfig from './createBabelConfig';
+import path from 'path';
 
 export function createJestConfig(
   _: (relativePath: string) => void,
@@ -6,10 +6,14 @@ export function createJestConfig(
 ) {
   const config = {
     transform: {
-      '.(ts|tsx)': require.resolve('ts-jest'),
+      '^.+\\.(js|jsx|ts|tsx)$': path.resolve(
+        __dirname,
+        './createJestTransformer'
+      ),
     },
     transformIgnorePatterns: ['[/\\\\]node_modules[/\\\\].+\\.(js|jsx)$'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+    modulePathIgnorePatterns: ['<rootDir>/dist'],
     collectCoverageFrom: ['src/**/*.{ts,tsx}'],
     testMatch: ['<rootDir>/**/*.(spec|test).{ts,tsx}'],
     testURL: 'http://localhost',
@@ -18,14 +22,6 @@ export function createJestConfig(
       require.resolve('jest-watch-typeahead/filename'),
       require.resolve('jest-watch-typeahead/testname'),
     ],
-    globals: {
-      'ts-jest': {
-        babelConfig: createBabelConfig({
-          target: 'node',
-          format: 'cjs',
-        }),
-      },
-    },
   };
 
   return config;
