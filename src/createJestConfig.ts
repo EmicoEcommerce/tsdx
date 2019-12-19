@@ -20,8 +20,13 @@ export function createJestConfig(
     ],
     globals: {
       'ts-jest': {
-        // TODO: babelConfig: createBabelConfig({
-        //   target: 'node',
+        // TODO: Use the config created by createBabelConfig to automatically
+        //  support all the same babel plugins/presets as used during the build
+        //  process. This requires a refactor of createBabelConfig to return a
+        //  plain .babelrc formatted JSON object, as its current non-standard
+        //  output with various objects is not supported.
+        // babelConfig: createBabelConfig({
+        //   targets: { node: 'current' },
         //   format: 'cjs',
         // }),
         babelConfig: {
