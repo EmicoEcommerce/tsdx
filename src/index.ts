@@ -166,6 +166,24 @@ async function moveTypes() {
     await fs.remove(paths.appDist + '/src');
   } catch (e) {}
 }
+async function generateDeclarationFiles(tsconfig: string) {
+  try {
+    await execa('tsc', [
+      `-p`,
+      tsconfig,
+      '--declaration',
+      `--outDir`,
+      paths.appDist,
+      '--emitDeclarationOnly',
+      '--declarationMap',
+    ]);
+    await moveTypes();
+  } catch (err) {
+    throw new Error(
+      `Failed to generate types.\n${err.message}\n${err.stderr}\n${err.stdout}`
+    );
+  }
+}
 
 prog
   .version(pkg.version)
@@ -378,7 +396,7 @@ prog
   ${chalk.dim('Watching for changes')}
 `);
         try {
-          await moveTypes();
+          await generateDeclarationFiles(opts.tsconfig || '.');
         } catch (_error) {}
       }
     });
@@ -405,6 +423,10 @@ prog
     'build --extractErrors=https://reactjs.org/docs/error-decoder.html?invariant='
   )
   .action(async (dirtyOpts: any) => {
+    // Do this as the first thing so that any code reading it knows the right env.
+    process.env.BABEL_ENV = 'production';
+    process.env.NODE_ENV = 'production';
+
     const opts = await normalizeOpts(dirtyOpts);
     const buildConfigs = await createBuildConfigs(opts);
     await cleanDistFolder();
@@ -415,20 +437,27 @@ prog
       logger(promise, 'Creating entry file');
     }
     try {
-      const promise = asyncro
+      const buildModulesPromise = asyncro
         .map(
           buildConfigs,
           async (inputOptions: RollupOptions & { output: OutputOptions }) => {
             let bundle = await rollup(inputOptions);
             await bundle.write(inputOptions.output);
-            await moveTypes();
           }
         )
         .catch((e: any) => {
           throw e;
         });
-      logger(promise, 'Building modules');
-      await promise;
+      logger(buildModulesPromise, 'Building modules');
+      await buildModulesPromise;
+      const generateDeclarationFilesPromise = generateDeclarationFiles(
+        opts.tsconfig || '.'
+      );
+      logger(
+        generateDeclarationFilesPromise,
+        'Generating type declaration files'
+      );
+      await generateDeclarationFilesPromise;
     } catch (error) {
       logError(error);
       process.exit(1);
