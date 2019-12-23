@@ -463,7 +463,14 @@ prog
     await ensureDistFolder();
     const isCI = Boolean(process.env.CI);
     const logger = isCI
-      ? (_: any, message: string) => console.log(message)
+      ? async (promise: Promise<any>, message: string) => {
+          const start = Number(new Date());
+
+          console.log(message);
+          await promise;
+          const duration = Number(new Date()) - start;
+          console.log('✓', message, `${(duration / 1000).toFixed(1)} secs`);
+        }
       : await createProgressEstimator();
     if (opts.format.includes('cjs')) {
       try {
