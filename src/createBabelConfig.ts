@@ -147,6 +147,7 @@ export default function createBabelConfig(
       },
     ]);
   }
+  babelOptions.presets.push('@babel/preset-react');
 
   // Merge babelrc & our plugins together
   babelOptions.plugins = mergeConfigItems(
