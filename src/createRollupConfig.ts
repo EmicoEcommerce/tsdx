@@ -152,7 +152,7 @@ export async function createRollupConfig(
             target: 'es5',
           },
         },
-        check: opts.transpileOnly === false,
+        check: Boolean(opts.transpileOnly),
       }),
       babelPluginTsdx({
         exclude: 'node_modules/**',
