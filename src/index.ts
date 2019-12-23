@@ -461,7 +461,10 @@ prog
     const buildConfigs = await createBuildConfigs(opts);
     await cleanDistFolder();
     await ensureDistFolder();
-    const logger = await createProgressEstimator();
+    const isCI = Boolean(process.env.CI);
+    const logger = isCI
+      ? (_: any, message: string) => console.log(message)
+      : await createProgressEstimator();
     if (opts.format.includes('cjs')) {
       try {
         await util.promisify(mkdirp)(resolveApp('./dist'));
