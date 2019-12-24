@@ -19,6 +19,7 @@ import { extractErrors } from './errors/extractErrors';
 import { babelPluginTsdx } from './babelPluginTsdx';
 import { TsdxOptions } from './types';
 import * as fs from 'fs-extra';
+import { CompilerOptions } from 'typescript';
 
 const errorCodeOpts = {
   errorMapFilePath: paths.appErrorsJson,
@@ -48,8 +49,13 @@ export async function createRollupConfig(
     .filter(Boolean)
     .join('.');
 
-  let tsconfigJSON;
+  let tsconfigJSON: {
+    extends?: string
+    include?: string[]
+    compilerOptions: CompilerOptions
+  } | undefined;
   try {
+    // TODO: Handle extends, but update rpts first to get https://github.com/rollup/rollup-plugin-typescript/pull/153
     tsconfigJSON = fs.readJSONSync(resolveApp('tsconfig.json'));
   } catch (e) {}
 
@@ -94,7 +100,7 @@ export async function createRollupConfig(
       // (i.e. import * as namespaceImportObject from...) that are accessed dynamically.
       freeze: false,
       // Respect tsconfig esModuleInterop when setting __esModule.
-      esModule: tsconfigJSON ? tsconfigJSON.esModuleInterop : false,
+      esModule: Boolean(tsconfigJSON?.compilerOptions?.esModuleInterop),
       name: opts.name || safeVariableName(opts.name),
       sourcemap: true,
       globals: { react: 'React', 'react-native': 'ReactNative' },
