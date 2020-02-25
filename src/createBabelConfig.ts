@@ -106,48 +106,40 @@ export default function createBabelConfig(
     ].filter(Boolean)
   );
 
-  babelOptions.presets = babelOptions.presets || [];
-
-  const envIdx = babelOptions.presets.findIndex((preset: any) =>
+  const userBabelPresets = babelOptions.presets || [];
+  const presetEnvIndex = userBabelPresets.findIndex((preset: any) =>
     preset.file.request.includes('@babel/preset-env')
   );
+  const preset = userBabelPresets[presetEnvIndex];
 
-  if (envIdx !== -1) {
-    const preset = babelOptions.presets[envIdx];
-    babelOptions.presets[envIdx] = createConfigItem(
-      [
-        preset.file.resolved,
-        merge(
-          {
-            loose: true,
-            targets,
-          },
-          preset.options,
-          {
-            modules: false,
-            exclude: merge(
-              ['transform-async-to-generator', 'transform-regenerator'],
-              (preset.options && preset.options.exclude) || []
-            ),
-          }
-        ),
-      ],
-      {
-        type: `preset`,
-      }
-    );
-  } else {
-    babelOptions.presets = createConfigItems('preset', [
-      {
-        name: '@babel/preset-env',
-        targets,
-        modules: false,
-        loose: true,
-        exclude: ['transform-async-to-generator', 'transform-regenerator'],
-      },
-    ]);
+  if (preset) {
+    // Remove it from the user presets so we can control its positioning
+    userBabelPresets.splice(presetEnvIndex);
   }
-  babelOptions.presets.push('@babel/preset-react');
+  const presetEnv = createConfigItem(
+    [
+      preset?.file.resolved ?? require.resolve('@babel/preset-env'),
+      merge(
+        {
+          loose: true,
+          targets,
+        },
+        preset?.options,
+        {
+          modules: false,
+          exclude: merge(
+            ['transform-async-to-generator', 'transform-regenerator'],
+            preset?.options?.exclude || []
+          ),
+        }
+      ),
+    ],
+    {
+      type: `preset`,
+    }
+  );
+
+  babelOptions.presets = [presetEnv, '@babel/preset-react', ...userBabelPresets];
 
   // Merge babelrc & our plugins together
   babelOptions.plugins = mergeConfigItems(
