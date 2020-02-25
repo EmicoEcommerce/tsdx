@@ -1,6 +1,6 @@
 {
   "name": "@emico/tsdx",
-  "version": "0.12.0-emico.4",
+  "version": "0.12.0-emico.5",
   "author": "Jared Palmer <jared@palmer.net>",
   "description": "Zero-config TypeScript package development",
   "license": "MIT",
@@ -21,13 +21,13 @@
     "tsdx": "./dist/index.js"
   },
   "scripts": {
-    "prepare": "tsc -p tsconfig.json",
+    "prepare": "yarn build",
     "build": "tsc -p tsconfig.json",
     "lint": "yarn build && yarn lint:post-build",
     "lint:post-build": "node dist/index.js lint src test --ignore-pattern 'test/tests/lint'",
     "test": "jest --config ./test/jest.config.json",
     "watch": "chokidar \"./package.json\" \"./src/**/*.ts\" \"node_modules\\@jaredpalmer\\rollup-plugin-preserve-shebang\\dist\\index.js\" -c \"yarn build && echo Success\"",
-    "start": "tsc -p tsconfig.json --watch"
+    "start": "yarn build --watch"
   },
   "files": [
     "dist",
